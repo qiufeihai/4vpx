@@ -252,13 +252,25 @@ sudo ss -lntp | grep ':443'
 sudo ss -lntp | grep ':8443'
 ```
 
+如果新增用户后看起来创建成功，但客户端仍然不通，优先再查这几项：
+
+```bash
+sudo journalctl -u 4vpx -n 100 --no-pager
+sudo journalctl -u xray -n 100 --no-pager
+grep -E '^(REALITY_PRIVATE_KEY|REALITY_PUBLIC_KEY|REALITY_SHORT_ID)=' /opt/4vpx/.env.local
+sudo systemctl cat xray.service
+ls -l /usr/local/etc/xray /usr/local/etc/xray/config.json /usr/local/etc/xray/config.json.bak
+```
+
 ### 重要提醒
 
 - 如果本机 `Xray` 已经直接监听公网 `443`，不要再让其他服务抢占同一个公网 `443`
 - `4vpx` 当前是普通 `HTTP` 服务，不会自动提供 HTTPS
 - 如果你把后台直接开放在 `8443`，这只是“HTTP 跑在 8443 端口”，不是 HTTPS
 - 当前版本已补基础 `CSRF` 防护和持久化管理员会话，但仍更推荐把后台限制在 `127.0.0.1:8080`
-- 如遇权限问题，优先排查 `XRAY_CONFIG_PATH`、`XRAY_RELOAD_CMD` 和 `SELinux`
+- `REALITY_PRIVATE_KEY`、`REALITY_PUBLIC_KEY`、`REALITY_SHORT_ID` 不能为空
+- `xray.service` 的 `User=` 必须与 `XRAY_CONFIG_PATH` 的目录权限、文件 owner/group/mode 匹配
+- 如遇 `permission denied`，优先检查 `XRAY_CONFIG_PATH`、`XRAY_RELOAD_CMD`、`xray.service` 的 `User=` 和配置文件权限，不要先怀疑客户端模板
 
 ## 备份
 

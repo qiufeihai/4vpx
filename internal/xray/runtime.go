@@ -2,12 +2,14 @@ package xray
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"4vpx/internal/domain"
@@ -59,11 +61,19 @@ func (r *Runtime) Publish(ctx context.Context, cfg domain.SystemConfig, devices 
 		return PublishResult{}, fmt.Errorf("mkdir xray backup dir: %w", err)
 	}
 
+	targetMetadata, err := lookupMetadata(cfg.XrayConfigPath, backupPath)
+	if err != nil {
+		return PublishResult{}, err
+	}
+
 	tempPath := tempConfigPath(cfg.XrayConfigPath)
 	if err := os.WriteFile(tempPath, rendered, 0o644); err != nil {
 		return PublishResult{}, fmt.Errorf("write xray temp config: %w", err)
 	}
 	defer os.Remove(tempPath)
+	if err := applyPublishedMetadata(tempPath, targetMetadata); err != nil {
+		return PublishResult{}, fmt.Errorf("prepare xray temp config permissions: %w", err)
+	}
 
 	if err := r.validate(ctx, cfg.XrayBin, tempPath); err != nil {
 		return PublishResult{}, err
@@ -78,6 +88,9 @@ func (r *Runtime) Publish(ctx context.Context, cfg domain.SystemConfig, devices 
 
 	if err := os.Rename(tempPath, cfg.XrayConfigPath); err != nil {
 		return PublishResult{}, fmt.Errorf("promote xray config: %w", err)
+	}
+	if err := applyPublishedMetadata(cfg.XrayConfigPath, targetMetadata); err != nil {
+		return PublishResult{}, fmt.Errorf("restore xray config permissions: %w", err)
 	}
 
 	result := PublishResult{
@@ -149,6 +162,63 @@ func tempConfigPath(configPath string) string {
 	return base + ".tmp" + ext
 }
 
+type fileMetadata struct {
+	Mode         os.FileMode
+	UID          int
+	GID          int
+	HasOwnership bool
+}
+
+func lookupMetadata(paths ...string) (fileMetadata, error) {
+	for _, path := range paths {
+		if strings.TrimSpace(path) == "" {
+			continue
+		}
+		meta, err := readFileMetadata(path)
+		if err == nil {
+			return meta, nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return fileMetadata{}, fmt.Errorf("stat %s: %w", path, err)
+		}
+	}
+	return fileMetadata{Mode: 0o644}, nil
+}
+
+func readFileMetadata(path string) (fileMetadata, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fileMetadata{}, err
+	}
+	meta := fileMetadata{
+		Mode: info.Mode().Perm(),
+	}
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+		meta.UID = int(stat.Uid)
+		meta.GID = int(stat.Gid)
+		meta.HasOwnership = true
+	}
+	return meta, nil
+}
+
+func applyPublishedMetadata(path string, target fileMetadata) error {
+	current, err := readFileMetadata(path)
+	if err != nil {
+		return err
+	}
+	if current.Mode != target.Mode {
+		if err := os.Chmod(path, target.Mode); err != nil {
+			return err
+		}
+	}
+	if target.HasOwnership && current.HasOwnership && (current.UID != target.UID || current.GID != target.GID) {
+		if err := os.Chown(path, target.UID, target.GID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func copyFile(src string, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -170,5 +240,16 @@ func copyFile(src string, dst string) error {
 	if _, err := io.Copy(out, in); err != nil {
 		return err
 	}
-	return out.Sync()
+	if err := out.Sync(); err != nil {
+		return err
+	}
+	meta := fileMetadata{
+		Mode: info.Mode().Perm(),
+	}
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+		meta.UID = int(stat.Uid)
+		meta.GID = int(stat.Gid)
+		meta.HasOwnership = true
+	}
+	return applyPublishedMetadata(dst, meta)
 }

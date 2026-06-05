@@ -51,7 +51,15 @@ func (s *SystemService) Ensure(ctx context.Context) (domain.SystemConfig, error)
 			return domain.SystemConfig{}, err
 		}
 	}
-	return s.mergeDefaults(cfg), nil
+
+	merged := s.mergeDefaults(cfg)
+	if merged != cfg {
+		merged.UpdatedAt = time.Now().UTC()
+		if err := s.store.System.Upsert(ctx, merged); err != nil {
+			return domain.SystemConfig{}, err
+		}
+	}
+	return merged, nil
 }
 
 func (s *SystemService) Get(ctx context.Context) (domain.SystemConfig, error) {

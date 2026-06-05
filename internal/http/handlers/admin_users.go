@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -160,6 +161,7 @@ func (a *App) DeleteUser(w http.ResponseWriter, r *http.Request, userID int64) {
 func (a *App) publishMutation(r *http.Request, successMessage string) error {
 	_, err := a.PublishService.Publish(r.Context())
 	if err != nil {
+		log.Printf("publish xray config failed: method=%s path=%s remote=%s err=%v", r.Method, r.URL.Path, r.RemoteAddr, err)
 		return fmt.Errorf("%s，但发布 Xray 配置失败: %w", successMessage, err)
 	}
 	return nil
