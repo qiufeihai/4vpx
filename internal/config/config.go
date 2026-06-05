@@ -5,53 +5,60 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	AppAddr           string
-	AppBaseURL        string
-	SessionCookieName string
-	SessionSecure     bool
-	AdminUsername     string
-	AdminPassword     string
-	SQLitePath        string
-	ServerAddress     string
-	ServerPort        int
-	RealityDest       string
-	RealityServerName string
-	ClientFingerprint string
-	RealityPrivateKey string
-	RealityPublicKey  string
-	RealityShortID    string
-	XrayLogLevel      string
-	XrayConfigPath    string
-	XrayBackupPath    string
-	XrayBin           string
-	XrayReloadCmd     string
+	AppAddr             string
+	AppBaseURL          string
+	SessionCookieName   string
+	SessionSecure       bool
+	AdminUsername       string
+	AdminPassword       string
+	SQLitePath          string
+	ServerAddress       string
+	ServerPort          int
+	RealityDest         string
+	RealityServerName   string
+	ClientFingerprint   string
+	RealityPrivateKey   string
+	RealityPublicKey    string
+	RealityShortID      string
+	XrayLogLevel        string
+	XrayConfigPath      string
+	XrayBackupPath      string
+	XrayBin             string
+	XrayReloadCmd       string
+	AutoPublishInterval time.Duration
 }
 
 func Load() (Config, error) {
+	autoPublishInterval, err := getduration("AUTO_PUBLISH_INTERVAL", 15*time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
 	cfg := Config{
-		AppAddr:           getenv("APP_ADDR", ":8080"),
-		AppBaseURL:        getenv("APP_BASE_URL", "http://127.0.0.1:8080"),
-		SessionCookieName: getenv("SESSION_COOKIE_NAME", "admin_session"),
-		SessionSecure:     getbool("SESSION_SECURE", false),
-		AdminUsername:     getenv("ADMIN_USERNAME", "admin"),
-		AdminPassword:     getenv("ADMIN_PASSWORD", "change-me-now"),
-		SQLitePath:        getenv("SQLITE_PATH", "./data/4vpx.db"),
-		ServerAddress:     getenv("SERVER_ADDRESS", ""),
-		ServerPort:        getint("SERVER_PORT", 443),
-		RealityDest:       getenv("REALITY_DEST", "www.microsoft.com:443"),
-		RealityServerName: getenv("REALITY_SERVER_NAME", "www.microsoft.com"),
-		ClientFingerprint: getenv("CLIENT_FINGERPRINT", "chrome"),
-		RealityPrivateKey: getenv("REALITY_PRIVATE_KEY", ""),
-		RealityPublicKey:  getenv("REALITY_PUBLIC_KEY", ""),
-		RealityShortID:    getenv("REALITY_SHORT_ID", ""),
-		XrayLogLevel:      getenv("XRAY_LOGLEVEL", "warning"),
-		XrayConfigPath:    getenv("XRAY_CONFIG_PATH", "./generated/xray-config.json"),
-		XrayBackupPath:    getenv("XRAY_BACKUP_PATH", "./generated/xray-config.backup.json"),
-		XrayBin:           getenv("XRAY_BIN", ""),
-		XrayReloadCmd:     getenv("XRAY_RELOAD_CMD", ""),
+		AppAddr:             getenv("APP_ADDR", ":8080"),
+		AppBaseURL:          getenv("APP_BASE_URL", "http://127.0.0.1:8080"),
+		SessionCookieName:   getenv("SESSION_COOKIE_NAME", "admin_session"),
+		SessionSecure:       getbool("SESSION_SECURE", false),
+		AdminUsername:       getenv("ADMIN_USERNAME", "admin"),
+		AdminPassword:       getenv("ADMIN_PASSWORD", "change-me-now"),
+		SQLitePath:          getenv("SQLITE_PATH", "./data/4vpx.db"),
+		ServerAddress:       getenv("SERVER_ADDRESS", ""),
+		ServerPort:          getint("SERVER_PORT", 443),
+		RealityDest:         getenv("REALITY_DEST", "www.microsoft.com:443"),
+		RealityServerName:   getenv("REALITY_SERVER_NAME", "www.microsoft.com"),
+		ClientFingerprint:   getenv("CLIENT_FINGERPRINT", "chrome"),
+		RealityPrivateKey:   getenv("REALITY_PRIVATE_KEY", ""),
+		RealityPublicKey:    getenv("REALITY_PUBLIC_KEY", ""),
+		RealityShortID:      getenv("REALITY_SHORT_ID", ""),
+		XrayLogLevel:        getenv("XRAY_LOGLEVEL", "warning"),
+		XrayConfigPath:      getenv("XRAY_CONFIG_PATH", "./generated/xray-config.json"),
+		XrayBackupPath:      getenv("XRAY_BACKUP_PATH", "./generated/xray-config.backup.json"),
+		XrayBin:             getenv("XRAY_BIN", ""),
+		XrayReloadCmd:       getenv("XRAY_RELOAD_CMD", ""),
+		AutoPublishInterval: autoPublishInterval,
 	}
 	if strings.TrimSpace(cfg.AdminPassword) == "" {
 		return Config{}, errors.New("ADMIN_PASSWORD must not be empty")
@@ -91,4 +98,16 @@ func getbool(key string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func getduration(key string, fallback time.Duration) (time.Duration, error) {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback, nil
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return 0, errors.New(key + " must be a valid duration such as 15m, 30m, 1h, or 0")
+	}
+	return d, nil
 }

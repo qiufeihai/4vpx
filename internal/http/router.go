@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"html/template"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -78,6 +79,7 @@ func NewRouter(ctx context.Context, db *sql.DB, cfg config.Config) (http.Handler
 		Importer:       backup.NewImporter(db),
 		BaseURL:        cfg.AppBaseURL,
 	}
+	startAutoPublish(ctx, publishService, cfg.AutoPublishInterval)
 
 	mux := http.NewServeMux()
 	loginHandler := app.CSRFManager.Protect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -225,4 +227,30 @@ func NewRouter(ctx context.Context, db *sql.DB, cfg config.Config) (http.Handler
 
 	mux.Handle("/admin/", app.SessionManager.Require(app.CSRFManager.Protect(adminMux)))
 	return mux, nil
+}
+
+func startAutoPublish(ctx context.Context, publishService *service.PublishService, interval time.Duration) {
+	if interval <= 0 {
+		log.Printf("auto publish disabled")
+		return
+	}
+
+	log.Printf("auto publish enabled: interval=%s", interval)
+	ticker := time.NewTicker(interval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				result, err := publishService.Publish(context.Background())
+				if err != nil {
+					log.Printf("auto publish failed: %v", err)
+					continue
+				}
+				log.Printf("auto publish complete: active_clients=%d reloaded=%t config=%s", result.ActiveClients, result.Reloaded, result.ConfigPath)
+			}
+		}
+	}()
 }

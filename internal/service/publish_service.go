@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 
 	"4vpx/internal/domain"
 	"4vpx/internal/storage/sqlite"
@@ -12,6 +13,7 @@ type PublishService struct {
 	store   *sqlite.Store
 	system  *SystemService
 	runtime *xray.Runtime
+	mu      sync.Mutex
 }
 
 func NewPublishService(store *sqlite.Store, system *SystemService, runtime *xray.Runtime) *PublishService {
@@ -23,6 +25,9 @@ func NewPublishService(store *sqlite.Store, system *SystemService, runtime *xray
 }
 
 func (s *PublishService) Publish(ctx context.Context) (xray.PublishResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	cfg, err := s.system.Get(ctx)
 	if err != nil {
 		return xray.PublishResult{}, err

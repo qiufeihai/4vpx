@@ -18,6 +18,27 @@
 - 自动渲染并发布本机 `Xray` 配置
 - 支持 `JSON` 导出和导入备份
 
+## 控制原理
+
+项目里“用户是否还能正常使用”的控制方式，核心不是在线查库鉴权，而是重写 `Xray` 的 `UUID` 列表：
+
+- 每个设备位都有独立 `UUID`
+- 后台修改用户启用/禁用、设备位启用/禁用、续费、到期状态后，会触发一次 `Xray` 配置发布
+- 发布时，程序会按“用户已启用 + 设备位已启用 + 用户未过期”筛出当前仍然有效的设备位
+- 只有这些有效设备位的 `UUID` 会被写入 `Xray` 服务端配置的 `inbounds[].settings.clients`
+- `Xray` 实际放行的就是这份当前配置中的 `UUID` 列表；被移除的 `UUID` 即使客户端还保存着旧配置，也无法再正常连接
+
+因此：
+
+- 禁用用户，本质上是把该用户所有设备位的 `UUID` 从当前 `Xray clients` 列表里移除
+- 禁用单个设备位，本质上是只移除该设备位自己的 `UUID`
+- 用户过期后，也会在下一次配置发布时从有效 `UUID` 列表中剔除
+
+当前版本还补了低频自动发布：
+
+- 默认按 `AUTO_PUBLISH_INTERVAL=15m` 自动重发一次 `Xray` 配置
+- 这样即使用户是“自然过期”，没有任何后台手工操作，过期设备位也会在后续自动同步中被剔除
+
 ## 生产环境
 
 最终生产环境建议按 `Rocky 9` 部署。
@@ -215,6 +236,7 @@ SESSION_SECURE=false
 - `XRAY_BACKUP_PATH=/usr/local/etc/xray/config.json.bak`
 - `XRAY_BIN=/usr/local/bin/xray`
 - `XRAY_RELOAD_CMD=systemctl restart xray.service`
+- `AUTO_PUBLISH_INTERVAL=15m`
 
 推荐目录：
 
@@ -268,6 +290,7 @@ ls -l /usr/local/etc/xray /usr/local/etc/xray/config.json /usr/local/etc/xray/co
 - `4vpx` 当前是普通 `HTTP` 服务，不会自动提供 HTTPS
 - 如果你把后台直接开放在 `8443`，这只是“HTTP 跑在 8443 端口”，不是 HTTPS
 - 当前版本已补基础 `CSRF` 防护和持久化管理员会话，但仍更推荐把后台限制在 `127.0.0.1:8080`
+- 默认会按 `AUTO_PUBLISH_INTERVAL=15m` 低频自动重发一次 `Xray` 配置，让自然过期用户最终被剔除；如担心频繁 reload，可改成 `30m`、`1h`，设为 `0` 可关闭
 - `REALITY_PRIVATE_KEY`、`REALITY_PUBLIC_KEY`、`REALITY_SHORT_ID` 不能为空
 - `xray.service` 的 `User=` 必须与 `XRAY_CONFIG_PATH` 的目录权限、文件 owner/group/mode 匹配
 - 如遇 `permission denied`，优先检查 `XRAY_CONFIG_PATH`、`XRAY_RELOAD_CMD`、`xray.service` 的 `User=` 和配置文件权限，不要先怀疑客户端模板
