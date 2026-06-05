@@ -75,4 +75,10 @@ func TestRenderServerConfigFiltersInactiveDevices(t *testing.T) {
 	if !strings.Contains(clientConfig.MihomoYAML, "uuid: uuid-active") {
 		t.Fatalf("unexpected mihomo YAML: %s", clientConfig.MihomoYAML)
 	}
+	if strings.Contains(clientConfig.MihomoYAML, "proxy-groups:") {
+		t.Fatalf("unexpected proxy-groups in mihomo YAML: %s", clientConfig.MihomoYAML)
+	}
+	if strings.Contains(clientConfig.MihomoYAML, "MATCH,PROXY") {
+		t.Fatalf("unexpected legacy MATCH,PROXY rule in mihomo YAML: %s", clientConfig.MihomoYAML)
+	}
 }

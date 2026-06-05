@@ -14,11 +14,5 @@ proxies:
       public-key: {{ .RealityPublicKey }}
       short-id: {{ .RealityShortID }}
 
-proxy-groups:
-  - name: PROXY
-    type: select
-    proxies:
-      - "{{ .Name }}"
-
 rules:
-  - MATCH,PROXY
+  - "MATCH,{{ .Name }}"
