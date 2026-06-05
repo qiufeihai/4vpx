@@ -64,7 +64,7 @@ current_go_version() {
 
 install_base_packages() {
   info "installing system packages"
-  dnf install -y git tar gzip curl unzip ca-certificates firewalld policycoreutils-python-utils
+  dnf install -y git tar gzip curl unzip ca-certificates firewalld policycoreutils-python-utils python3
 }
 
 install_or_upgrade_go() {
@@ -179,12 +179,58 @@ prompt_value() {
 generate_reality_keypair() {
   local output private_key public_key
   output=$("$XRAY_BIN_PATH" x25519 2>&1 | tr -d '\r')
-  private_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*[Pp]rivate key:[[:space:]]*//p' | head -n1)
-  public_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*[Pp]ublic key:[[:space:]]*//p' | head -n1)
+  private_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*([Pp]rivate[[:space:]]*[Kk]ey|PrivateKey):[[:space:]]*//p' | head -n1)
+  public_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*([Pp]ublic[[:space:]]*[Kk]ey|PublicKey|Password[[:space:]]*\(PublicKey\)):[[:space:]]*//p' | head -n1)
   if [ -z "$private_key" ] || [ -z "$public_key" ]; then
     return 1
   fi
   printf '%s\n%s\n' "$private_key" "$public_key"
+}
+
+derive_reality_public_key() {
+  local private_key=$1 output public_key
+  [ -n "$private_key" ] || return 1
+
+  output=$("$XRAY_BIN_PATH" x25519 -i "$private_key" 2>&1 | tr -d '\r')
+  public_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*([Pp]ublic[[:space:]]*[Kk]ey|PublicKey|Password[[:space:]]*\(PublicKey\)):[[:space:]]*//p' | head -n1)
+  [ -n "$public_key" ] || return 1
+  printf '%s\n' "$public_key"
+}
+
+read_existing_reality_config() {
+  local config_path=$1
+  [ -f "$config_path" ] || return 1
+  command -v python3 >/dev/null 2>&1 || return 1
+
+  python3 - "$config_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+
+try:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    raise SystemExit(1)
+
+for inbound in data.get("inbounds", []):
+    stream_settings = inbound.get("streamSettings") or {}
+    reality_settings = stream_settings.get("realitySettings") or {}
+    if not reality_settings:
+        continue
+
+    server_names = reality_settings.get("serverNames") or []
+    short_ids = reality_settings.get("shortIds") or []
+
+    print(reality_settings.get("dest", ""))
+    print(server_names[0] if server_names else "")
+    print(reality_settings.get("privateKey", ""))
+    print(short_ids[0] if short_ids else "")
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
 }
 
 generate_short_id() {
@@ -200,6 +246,8 @@ write_env_file() {
   local app_addr app_base_url admin_username admin_password sqlite_path server_address
   local reality_dest reality_server_name private_key public_key short_id
   local xray_config_path xray_backup_path xray_reload_cmd backup_file generated_keys
+  local existing_reality_config existing_reality_dest existing_reality_server_name
+  local existing_reality_private_key existing_reality_short_id
 
   app_addr_default=$(read_env_value APP_ADDR "$existing_file")
   [ -n "$app_addr_default" ] || app_addr_default=0.0.0.0:8443
@@ -215,14 +263,31 @@ write_env_file() {
   server_address_default=$(read_env_value SERVER_ADDRESS "$existing_file")
   [ -n "$server_address_default" ] || server_address_default=$(curl -4 -fsSL https://api.ipify.org 2>/dev/null || true)
 
+  xray_config_default=$(read_env_value XRAY_CONFIG_PATH "$existing_file")
+  [ -n "$xray_config_default" ] || xray_config_default=/usr/local/etc/xray/config.json
+
+  existing_reality_config=$(read_existing_reality_config "$xray_config_default" || true)
+  if [ -n "$existing_reality_config" ]; then
+    existing_reality_dest=$(printf '%s\n' "$existing_reality_config" | sed -n '1p')
+    existing_reality_server_name=$(printf '%s\n' "$existing_reality_config" | sed -n '2p')
+    existing_reality_private_key=$(printf '%s\n' "$existing_reality_config" | sed -n '3p')
+    existing_reality_short_id=$(printf '%s\n' "$existing_reality_config" | sed -n '4p')
+  fi
+
   reality_dest_default=$(read_env_value REALITY_DEST "$existing_file")
+  [ -n "$reality_dest_default" ] || reality_dest_default=$existing_reality_dest
   [ -n "$reality_dest_default" ] || reality_dest_default=www.microsoft.com:443
 
   reality_server_name_default=$(read_env_value REALITY_SERVER_NAME "$existing_file")
+  [ -n "$reality_server_name_default" ] || reality_server_name_default=$existing_reality_server_name
   [ -n "$reality_server_name_default" ] || reality_server_name_default=www.microsoft.com
 
   private_key_default=$(read_env_value REALITY_PRIVATE_KEY "$existing_file")
+  [ -n "$private_key_default" ] || private_key_default=$existing_reality_private_key
   public_key_default=$(read_env_value REALITY_PUBLIC_KEY "$existing_file")
+  if [ -z "$public_key_default" ] && [ -n "$private_key_default" ]; then
+    public_key_default=$(derive_reality_public_key "$private_key_default" || true)
+  fi
   if [ -z "$private_key_default" ] || [ -z "$public_key_default" ]; then
     if generated_keys=$(generate_reality_keypair); then
       private_key_default=$(printf '%s\n' "$generated_keys" | sed -n '1p')
@@ -233,10 +298,8 @@ write_env_file() {
   fi
 
   short_id_default=$(read_env_value REALITY_SHORT_ID "$existing_file")
+  [ -n "$short_id_default" ] || short_id_default=$existing_reality_short_id
   [ -n "$short_id_default" ] || short_id_default=$(generate_short_id)
-
-  xray_config_default=$(read_env_value XRAY_CONFIG_PATH "$existing_file")
-  [ -n "$xray_config_default" ] || xray_config_default=/usr/local/etc/xray/config.json
 
   xray_backup_default=$(read_env_value XRAY_BACKUP_PATH "$existing_file")
   [ -n "$xray_backup_default" ] || xray_backup_default=/usr/local/etc/xray/config.json.bak

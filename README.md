@@ -124,6 +124,8 @@ sudo ./scripts/install-rocky9.sh
 sudo XRAY_SERVICE_UNIT=your-xray.service ./scripts/install-rocky9.sh
 ```
 
+如果现有 `XRAY_CONFIG_PATH` 指向的 `Xray` 配置本身已经包含 `REALITY` 入站，脚本会优先读取其中的 `dest`、`serverNames[0]`、`privateKey`、`shortIds[0]`，并自动推导 `publicKey` 作为交互默认值。
+
 ### 推荐填写
 
 更安全的后台方式：
