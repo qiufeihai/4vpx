@@ -35,8 +35,6 @@
     .grid { display: grid; gap: 18px; }
     .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     .stack { display: grid; gap: 14px; }
-    .page-split { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.95fr); gap: 18px; align-items: start; }
-    .sidebar-sticky { position: sticky; top: 20px; }
     .surface-soft { background: var(--surface-soft); border: 1px solid var(--surface-border); border-radius: 14px; padding: 16px; }
     .section-title { margin: 0 0 6px; font-size: 20px; }
     .section-desc { margin: 0; color: var(--text-soft); line-height: 1.55; }
@@ -70,6 +68,14 @@
     .page-header p { margin: 8px 0 0; color: var(--text-soft); line-height: 1.55; max-width: 720px; }
     .card-title { margin: 0 0 6px; font-size: 18px; }
     .card-subtitle { margin: 0 0 16px; color: var(--text-soft); line-height: 1.5; }
+    .collapsible-card { padding: 0; overflow: hidden; }
+    .collapsible-card summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; }
+    .collapsible-card summary::-webkit-details-marker { display: none; }
+    .collapsible-card summary:hover { background: #fafbff; }
+    .collapsible-indicator { color: var(--text-soft); font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .collapsible-card[open] .collapsible-indicator::after { content: "收起"; }
+    .collapsible-card:not([open]) .collapsible-indicator::after { content: "展开"; }
+    .collapsible-body { padding: 0 24px 24px; border-top: 1px solid var(--surface-border); background: linear-gradient(180deg, rgba(248, 250, 252, 0.75), rgba(255, 255, 255, 0)); }
     .submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
     .submit-row button { width: auto; min-width: 140px; padding-left: 18px; padding-right: 18px; }
     .link-button { display: inline-flex; align-items: center; justify-content: center; width: auto; padding: 10px 14px; border-radius: 10px; background: var(--surface-soft); border: 1px solid var(--surface-border); color: var(--text); text-decoration: none; font-weight: 600; }
@@ -81,8 +87,8 @@
       header { padding: 14px 16px; }
       main { margin-top: 20px; padding: 0 14px 28px; }
       .card { padding: 18px; border-radius: 16px; }
-      .page-split { grid-template-columns: 1fr; }
-      .sidebar-sticky { position: static; }
+      .collapsible-card summary { padding: 18px; align-items: flex-start; }
+      .collapsible-body { padding: 0 18px 18px; }
       .submit-row { justify-content: stretch; }
       .submit-row button { width: 100%; }
     }
