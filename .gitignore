@@ -1,0 +1,24 @@
+.DS_Store
+
+# Local environment files
+.env.local
+.env.*.local
+
+# Build outputs
+/4vpx
+/bin/
+*.exe
+*.test
+*.out
+
+# Local runtime data
+/data/
+/generated/
+/logs/
+*.db
+*.db-shm
+*.db-wal
+
+# Editor and IDE
+.idea/
+.vscode/

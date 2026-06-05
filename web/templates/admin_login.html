@@ -1,0 +1,13 @@
+{{define "admin_login_content"}}
+<div class="card" style="max-width:420px;margin:48px auto;">
+  <h2>管理员登录</h2>
+  <form method="post" action="/login">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <label class="label">用户名</label>
+    <input type="text" name="username" value="admin">
+    <label class="label">密码</label>
+    <input type="password" name="password">
+    <div style="margin-top:16px;"><button type="submit">登录</button></div>
+  </form>
+</div>
+{{end}}

@@ -1,0 +1,24 @@
+{{define "user_portal_content"}}
+<div class="card">
+  <h2>{{.User.Name}} 的订阅信息</h2>
+  <p>状态: {{if .User.Enabled}}启用{{else}}禁用{{end}}</p>
+  <p>到期时间: {{.User.ExpiresAt.Format "2006-01-02 15:04"}}</p>
+  <p>剩余天数: {{.User.RemainingDays}}</p>
+  <p class="muted">备注: {{.User.Notes}}</p>
+</div>
+
+<div class="card">
+  <h3>设备位配置</h3>
+  {{range .Devices}}
+  <div class="card" style="background:#f9fafb;box-shadow:none;">
+    <strong>{{.Slot.Label}}</strong>
+    <p class="label">VLESS URI</p>
+    <pre class="mono">{{.VLESSURI}}</pre>
+    <p class="label">Mihomo YAML</p>
+    <pre class="mono">{{.MihomoYAML}}</pre>
+  </div>
+  {{else}}
+  <p class="muted">暂无设备位</p>
+  {{end}}
+</div>
+{{end}}

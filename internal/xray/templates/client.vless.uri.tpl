@@ -1,0 +1,1 @@
+vless://{{ .UUID }}@{{ .ServerAddress }}:{{ .ServerPort }}?encryption=none&flow=xtls-rprx-vision&security=reality&sni={{ .RealityServerName }}&fp={{ .ClientFingerprint }}&pbk={{ .RealityPublicKey }}&sid={{ .RealityShortID }}&type=tcp#{{ .Tag }}

@@ -1,0 +1,19 @@
+[Unit]
+Description=4vpx web panel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/4vpx
+EnvironmentFile=/opt/4vpx/.env.local
+ExecStart=/opt/4vpx/bin/4vpx
+Restart=always
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,90 @@
+{{define "admin_user_detail_content"}}
+<div class="card">
+  <h2>用户详情: {{.User.Name}}</h2>
+  <p class="muted">访问链接: <a href="{{.AccessURL}}" target="_blank">{{.AccessURL}}</a></p>
+  <form method="post" action="/admin/users/{{.User.ID}}/update">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="row">
+      <div><label class="label">用户名</label><input type="text" name="name" value="{{.User.Name}}"></div>
+      <div><label class="label">到期时间</label><input type="datetime-local" name="expires_at" value="{{.User.ExpiresAt.Format "2006-01-02T15:04"}}"></div>
+      <div><label class="label">状态</label><select name="enabled"><option value="1" {{if .User.Enabled}}selected{{end}}>启用</option><option value="0" {{if not .User.Enabled}}selected{{end}}>禁用</option></select></div>
+    </div>
+    <label class="label">备注</label>
+    <textarea name="notes">{{.User.Notes}}</textarea>
+    <div style="margin-top:16px;"><button type="submit">保存用户信息</button></div>
+  </form>
+</div>
+
+<div class="card grid grid-2">
+  <div>
+    <h3>快捷续费</h3>
+    <div class="actions">
+      <form class="inline" method="post" action="/admin/users/{{.User.ID}}/renew-7"><input type="hidden" name="csrf_token" value="{{$.CSRFToken}}"><button type="submit">续费 7 天</button></form>
+      <form class="inline" method="post" action="/admin/users/{{.User.ID}}/renew-month"><input type="hidden" name="csrf_token" value="{{$.CSRFToken}}"><button type="submit">续费 1 个月</button></form>
+    </div>
+    <form method="post" action="/admin/users/{{.User.ID}}/renew-custom" style="margin-top:8px;">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label class="label">自定义到期时间</label>
+      <input type="datetime-local" name="target_expires_at">
+      <div style="margin-top:8px;"><button type="submit" class="secondary">保存自定义续费</button></div>
+    </form>
+  </div>
+  <div>
+    <h3>设备位管理</h3>
+    <form method="post" action="/admin/users/{{.User.ID}}/devices">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <label class="label">设备位数量</label>
+      <input type="number" name="device_slots" value="{{.User.DeviceSlots}}" min="1">
+      <div style="margin-top:8px;"><button type="submit">更新设备位数量</button></div>
+    </form>
+    <form method="post" action="/admin/users/{{.User.ID}}/delete" style="margin-top:16px;">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="danger">删除用户</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h3>设备位配置</h3>
+  {{range .Devices}}
+  <div class="card" style="background:#f9fafb;box-shadow:none;">
+    <strong>{{.Slot.Label}}</strong> | {{if .Slot.Enabled}}启用{{else}}禁用{{end}} | UUID: <span class="mono">{{.Slot.UUID}}</span>
+    <div class="actions" style="margin-top:8px;">
+      <form class="inline" method="post" action="/admin/users/{{$.User.ID}}/devices/{{.Slot.SlotIndex}}/reset"><input type="hidden" name="csrf_token" value="{{$.CSRFToken}}"><button type="submit">重置 UUID</button></form>
+      <form class="inline" method="post" action="/admin/users/{{$.User.ID}}/devices/{{.Slot.SlotIndex}}/toggle">
+        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+        <input type="hidden" name="enabled" value="{{if .Slot.Enabled}}0{{else}}1{{end}}">
+        <button type="submit" class="secondary">{{if .Slot.Enabled}}禁用{{else}}启用{{end}}</button>
+      </form>
+    </div>
+    <p class="label">VLESS URI</p>
+    <pre class="mono">{{.VLESSURI}}</pre>
+    <p class="label">Mihomo YAML</p>
+    <pre class="mono">{{.MihomoYAML}}</pre>
+  </div>
+  {{else}}
+  <p class="muted">暂无设备位</p>
+  {{end}}
+</div>
+
+<div class="card">
+  <h3>续费记录</h3>
+  <table>
+    <thead><tr><th>时间</th><th>动作</th><th>天数</th><th>变更前</th><th>变更后</th><th>备注</th></tr></thead>
+    <tbody>
+      {{range .Renewals}}
+      <tr>
+        <td>{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+        <td>{{.Action}}</td>
+        <td>{{.Days}}</td>
+        <td>{{.BeforeExpiresAt.Format "2006-01-02 15:04"}}</td>
+        <td>{{.AfterExpiresAt.Format "2006-01-02 15:04"}}</td>
+        <td>{{.Notes}}</td>
+      </tr>
+      {{else}}
+      <tr><td colspan="6" class="muted">暂无续费记录</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

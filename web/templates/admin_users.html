@@ -1,0 +1,38 @@
+{{define "admin_users_content"}}
+<div class="card">
+  <h2>创建用户</h2>
+  <form method="post" action="/admin/users">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="row">
+      <div><label class="label">用户名</label><input type="text" name="name" required></div>
+      <div><label class="label">设备位数量</label><input type="number" name="device_slots" value="1" min="1" required></div>
+      <div><label class="label">到期时间</label><input type="datetime-local" name="expires_at" required></div>
+      <div><label class="label">状态</label><select name="enabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
+    </div>
+    <label class="label">备注</label>
+    <textarea name="notes"></textarea>
+    <div style="margin-top:16px;"><button type="submit">创建用户</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>用户列表</h2>
+  <table>
+    <thead><tr><th>用户</th><th>状态</th><th>到期时间</th><th>剩余天数</th><th>设备位</th><th>操作</th></tr></thead>
+    <tbody>
+      {{range .Users}}
+      <tr>
+        <td><a href="/admin/users/{{.ID}}">{{.Name}}</a></td>
+        <td>{{if .Enabled}}启用{{else}}禁用{{end}}</td>
+        <td>{{.ExpiresAt.Format "2006-01-02 15:04"}}</td>
+        <td>{{.RemainingDays}}</td>
+        <td>{{.DeviceSlots}}</td>
+        <td><a href="/admin/users/{{.ID}}">详情</a></td>
+      </tr>
+      {{else}}
+      <tr><td colspan="6" class="muted">暂无用户</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
