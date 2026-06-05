@@ -2,13 +2,11 @@
 <div class="page-header">
   <div>
     <h2>系统设置</h2>
-    <p>集中管理节点接入参数、REALITY 密钥和 Xray 运行路径。保存后会立即尝试重新渲染并发布服务端配置。</p>
   </div>
 </div>
 
 <div class="card">
   <h3 class="card-title">节点接入参数</h3>
-  <p class="card-subtitle">这些字段会影响客户端订阅信息和服务端监听参数，改动后建议马上验证客户端是否还能正常连通。</p>
   <form method="post" action="/admin/system">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <div class="row">
@@ -46,7 +44,6 @@
 
     <div class="surface-soft" style="margin-top:18px;">
       <h4 class="card-title">REALITY 密钥</h4>
-      <p class="card-subtitle">这里只展示并保存当前面板使用的密钥参数。修改后需要同步更新客户端侧的 `pbk` 和 `sid`。</p>
       <div class="row row-tight">
         <div>
           <label class="label">Private Key</label>
@@ -65,7 +62,6 @@
 
     <div class="surface-soft" style="margin-top:18px;">
       <h4 class="card-title">Xray 运行时</h4>
-      <p class="card-subtitle">这些值主要服务于配置发布和自动重载，通常在首次部署完成后不需要频繁改动。</p>
       <div class="row">
         <div>
           <label class="label">Xray 配置路径</label>
@@ -93,7 +89,6 @@
   <div class="stack">
     <div>
       <h3 class="card-title">修改管理员密码</h3>
-      <p class="card-subtitle">仅影响后台登录，不会影响用户订阅链接或 Xray 配置。</p>
     </div>
     <form method="post" action="/admin/change-password">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -107,7 +102,6 @@
   <div class="stack">
     <div>
       <h3 class="card-title">备份与恢复</h3>
-      <p class="card-subtitle">导出完整 JSON 备份，或在需要时把备份内容粘贴回面板进行恢复。</p>
     </div>
     <div><a class="link-button" href="/admin/export">导出 JSON 备份</a></div>
     <form method="post" action="/admin/import" style="margin-top:12px;">

@@ -36,6 +36,13 @@
     .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     .stack { display: grid; gap: 14px; }
     .surface-soft { background: var(--surface-soft); border: 1px solid var(--surface-border); border-radius: 14px; padding: 16px; }
+    .filter-toolbar { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(140px, 0.8fr) minmax(160px, 0.95fr) minmax(120px, 0.7fr) auto; gap: 12px; align-items: end; }
+    .filter-toolbar .field { min-width: 0; }
+    .filter-toolbar .field input,
+    .filter-toolbar .field select { height: 42px; }
+    .filter-actions { display: flex; gap: 8px; align-items: end; justify-content: flex-end; }
+    .filter-actions button,
+    .filter-actions .link-button { width: auto; min-width: 0; white-space: nowrap; }
     .section-title { margin: 0 0 6px; font-size: 20px; }
     .section-desc { margin: 0; color: var(--text-soft); line-height: 1.55; }
     .table-wrap { overflow-x: auto; }
@@ -87,6 +94,10 @@
       header { padding: 14px 16px; }
       main { margin-top: 20px; padding: 0 14px 28px; }
       .card { padding: 18px; border-radius: 16px; }
+      .filter-toolbar { grid-template-columns: 1fr; }
+      .filter-actions { justify-content: stretch; }
+      .filter-actions button,
+      .filter-actions .link-button { width: 100%; justify-content: center; }
       .collapsible-card summary { padding: 18px; align-items: flex-start; }
       .collapsible-body { padding: 0 18px 18px; }
       .submit-row { justify-content: stretch; }

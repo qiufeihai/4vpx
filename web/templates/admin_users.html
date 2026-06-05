@@ -2,20 +2,56 @@
 <div class="page-header">
   <div>
     <h2>用户管理</h2>
-    <p>列表优先展示现有用户，创建表单收成折叠区，避免页面被表单切成不协调的左右两栏。</p>
   </div>
 </div>
 
+<details class="card collapsible-card">
+  <summary>
+    <div>
+      <h2 class="card-title">新建用户</h2>
+    </div>
+    <span class="collapsible-indicator"></span>
+  </summary>
+  <div class="collapsible-body">
+    <form method="post" action="/admin/users" class="stack">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <div class="row-tight grid">
+        <div><label class="label">用户名</label><input type="text" name="name" required></div>
+        <div><label class="label">设备位数量</label><input type="number" name="device_slots" value="1" min="1" required></div>
+        <div>
+          <label class="label">快捷到期</label>
+          <select name="quick_expiry">
+            <option value="7d">7 天后</option>
+            <option value="3d">3 天后</option>
+            <option value="1m">1 个月后</option>
+            <option value="custom">自定义时间</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">自定义到期时间</label>
+          <input type="datetime-local" name="expires_at">
+          <div class="help">仅在上面选择“自定义时间”时生效。</div>
+        </div>
+        <div><label class="label">状态</label><select name="enabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
+      </div>
+      <div>
+        <label class="label">备注</label>
+        <textarea name="notes" class="textarea-compact"></textarea>
+      </div>
+      <div class="submit-row"><button type="submit">创建用户</button></div>
+    </form>
+  </div>
+</details>
+
 <div class="card">
   <h2 class="card-title">用户列表</h2>
-  <p class="card-subtitle">支持直接在列表里续费、启用或禁用用户，只有需要看设备明细时再进入详情。</p>
   <form method="get" action="/admin/users" class="surface-soft" style="margin-bottom:16px;">
-    <div class="row-tight grid">
-      <div>
+    <div class="filter-toolbar">
+      <div class="field">
         <label class="label">搜索</label>
         <input type="text" name="q" value="{{.UserFilters.Query}}" placeholder="用户名或备注">
       </div>
-      <div>
+      <div class="field">
         <label class="label">状态</label>
         <select name="status">
           <option value="" {{if eq .UserFilters.Status ""}}selected{{end}}>全部</option>
@@ -23,7 +59,7 @@
           <option value="disabled" {{if eq .UserFilters.Status "disabled"}}selected{{end}}>禁用</option>
         </select>
       </div>
-      <div>
+      <div class="field">
         <label class="label">到期状态</label>
         <select name="expiry">
           <option value="" {{if eq .UserFilters.Expiry ""}}selected{{end}}>全部</option>
@@ -32,7 +68,7 @@
           <option value="expiring_7d" {{if eq .UserFilters.Expiry "expiring_7d"}}selected{{end}}>7 天内到期</option>
         </select>
       </div>
-      <div>
+      <div class="field">
         <label class="label">每页数量</label>
         <select name="page_size">
           <option value="10" {{if eq .UserListMeta.PageSize 10}}selected{{end}}>10</option>
@@ -40,10 +76,10 @@
           <option value="50" {{if eq .UserListMeta.PageSize 50}}selected{{end}}>50</option>
         </select>
       </div>
-    </div>
-    <div class="actions" style="margin-top:12px;">
-      <button type="submit" style="width:auto;">应用筛选</button>
-      <a class="link-button" href="/admin/users">清空筛选</a>
+      <div class="filter-actions">
+        <button type="submit">应用筛选</button>
+        <a class="link-button" href="/admin/users">清空筛选</a>
+      </div>
     </div>
   </form>
   <p class="muted" style="margin:0 0 12px;">
@@ -105,43 +141,4 @@
   </div>
   {{end}}
 </div>
-
-<details class="card collapsible-card">
-  <summary>
-    <div>
-      <h2 class="card-title">创建用户</h2>
-      <p class="card-subtitle" style="margin-bottom:0;">只在需要时展开，避免表单长期占用主视区。</p>
-    </div>
-    <span class="collapsible-indicator"></span>
-  </summary>
-  <div class="collapsible-body">
-    <form method="post" action="/admin/users" class="stack">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-      <div class="row-tight grid">
-        <div><label class="label">用户名</label><input type="text" name="name" required></div>
-        <div><label class="label">设备位数量</label><input type="number" name="device_slots" value="1" min="1" required></div>
-        <div>
-          <label class="label">快捷到期</label>
-          <select name="quick_expiry">
-            <option value="7d">7 天后</option>
-            <option value="3d">3 天后</option>
-            <option value="1m">1 个月后</option>
-            <option value="custom">自定义时间</option>
-          </select>
-        </div>
-        <div>
-          <label class="label">自定义到期时间</label>
-          <input type="datetime-local" name="expires_at">
-          <div class="help">仅在上面选择“自定义时间”时生效。</div>
-        </div>
-        <div><label class="label">状态</label><select name="enabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
-      </div>
-      <div>
-        <label class="label">备注</label>
-        <textarea name="notes" class="textarea-compact"></textarea>
-      </div>
-      <div class="submit-row"><button type="submit">创建用户</button></div>
-    </form>
-  </div>
-</details>
 {{end}}
