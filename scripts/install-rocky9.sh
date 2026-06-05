@@ -12,6 +12,7 @@ GO_MIN_VERSION=1.23.0
 GO_VERSION_URL=https://go.dev/VERSION?m=text
 XRAY_INSTALL_URL=https://github.com/XTLS/Xray-install/raw/main/install-release.sh
 XRAY_BIN_PATH=
+XRAY_SERVICE_UNIT=${XRAY_SERVICE_UNIT:-xray.service}
 
 info() {
   printf '[4vpx] %s\n' "$1"
@@ -102,9 +103,9 @@ install_or_upgrade_go() {
 }
 
 install_or_upgrade_xray() {
-  if command -v xray >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^xray\.service'; then
+  if command -v xray >/dev/null 2>&1 && systemctl cat "$XRAY_SERVICE_UNIT" >/dev/null 2>&1; then
     XRAY_BIN_PATH=$(command -v xray)
-    info "using existing Xray installation at $XRAY_BIN_PATH"
+    info "using existing Xray installation at $XRAY_BIN_PATH ($XRAY_SERVICE_UNIT)"
     return
   fi
 
@@ -114,8 +115,8 @@ install_or_upgrade_xray() {
   if ! command -v xray >/dev/null 2>&1; then
     fail "Xray installation failed: xray binary not found"
   fi
-  if ! systemctl list-unit-files | grep -q '^xray\.service'; then
-    fail "Xray installation failed: xray.service not found"
+  if ! systemctl cat "$XRAY_SERVICE_UNIT" >/dev/null 2>&1; then
+    fail "Xray installation failed: ${XRAY_SERVICE_UNIT} not found"
   fi
   XRAY_BIN_PATH=$(command -v xray)
 }
@@ -238,7 +239,7 @@ write_env_file() {
   [ -n "$xray_backup_default" ] || xray_backup_default=/usr/local/etc/xray/config.json.bak
 
   xray_reload_default=$(read_env_value XRAY_RELOAD_CMD "$existing_file")
-  [ -n "$xray_reload_default" ] || xray_reload_default='systemctl restart xray'
+  [ -n "$xray_reload_default" ] || xray_reload_default="systemctl restart ${XRAY_SERVICE_UNIT}"
 
   session_secure_default=$(read_env_value SESSION_SECURE "$existing_file")
   [ -n "$session_secure_default" ] || session_secure_default=false
@@ -342,9 +343,9 @@ enable_firewall() {
 enable_services() {
   info "enabling services"
   systemctl daemon-reload
-  systemctl enable xray >/dev/null
+  systemctl enable "$XRAY_SERVICE_UNIT" >/dev/null
   systemctl enable 4vpx >/dev/null
-  systemctl restart xray
+  systemctl restart "$XRAY_SERVICE_UNIT"
   systemctl restart 4vpx
 }
 
@@ -361,7 +362,7 @@ service:      $SERVICE_FILE
 panel addr:   $app_addr
 
 next checks:
-  systemctl status xray --no-pager
+  systemctl status ${XRAY_SERVICE_UNIT} --no-pager
   systemctl status 4vpx --no-pager
   ss -lntp | grep ':443'
   ss -lntp | grep ':8443'

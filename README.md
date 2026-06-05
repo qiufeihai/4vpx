@@ -99,6 +99,15 @@ cd /opt/4vpx
 sudo ./scripts/install-rocky9.sh
 ```
 
+如果你只是想把源码放在家目录，也可以这样执行：
+
+```bash
+sudo dnf install -y git
+git clone https://github.com/qiufeihai/4vpx.git ~/4vpx
+cd ~/4vpx
+sudo ./scripts/install-rocky9.sh
+```
+
 脚本会自动完成：
 
 - 安装基础依赖
@@ -108,6 +117,12 @@ sudo ./scripts/install-rocky9.sh
 - 构建 `4vpx`
 - 注册并启动 `xray` 与 `4vpx`
 - 开放 `443/tcp` 与 `8443/tcp`
+
+如果系统里已经有可用的 `Xray`，脚本会直接复用它；默认要求服务名为 `xray.service`。如果你的服务名不同，可以在执行时指定：
+
+```bash
+sudo XRAY_SERVICE_UNIT=your-xray.service ./scripts/install-rocky9.sh
+```
 
 ### 推荐填写
 
@@ -142,7 +157,7 @@ SESSION_SECURE=false
 - `XRAY_CONFIG_PATH=/usr/local/etc/xray/config.json`
 - `XRAY_BACKUP_PATH=/usr/local/etc/xray/config.json.bak`
 - `XRAY_BIN=/usr/local/bin/xray`
-- `XRAY_RELOAD_CMD=systemctl restart xray`
+- `XRAY_RELOAD_CMD=systemctl restart xray.service`
 
 推荐目录：
 
