@@ -49,6 +49,35 @@ type TemplateData struct {
 	AccessURL       string
 	PublishResult   string
 	CSRFToken       string
+	UserFilters     UserListFilters
+	UserListMeta    UserListMeta
+	UserActionURL   string
+}
+
+type UserListFilters struct {
+	Query  string
+	Status string
+	Expiry string
+}
+
+type UserListMeta struct {
+	Total       int
+	Page        int
+	PageSize    int
+	TotalPages  int
+	ShowingFrom int
+	ShowingTo   int
+	HasPrev     bool
+	HasNext     bool
+	PrevURL     string
+	NextURL     string
+	Links       []PaginationLink
+}
+
+type PaginationLink struct {
+	Label   string
+	URL     string
+	Current bool
 }
 
 func (a *App) render(w http.ResponseWriter, r *http.Request, data TemplateData) {

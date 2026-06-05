@@ -9,6 +9,50 @@
 <div class="card">
   <h2 class="card-title">用户列表</h2>
   <p class="card-subtitle">支持直接在列表里续费、启用或禁用用户，只有需要看设备明细时再进入详情。</p>
+  <form method="get" action="/admin/users" class="surface-soft" style="margin-bottom:16px;">
+    <div class="row-tight grid">
+      <div>
+        <label class="label">搜索</label>
+        <input type="text" name="q" value="{{.UserFilters.Query}}" placeholder="用户名或备注">
+      </div>
+      <div>
+        <label class="label">状态</label>
+        <select name="status">
+          <option value="" {{if eq .UserFilters.Status ""}}selected{{end}}>全部</option>
+          <option value="enabled" {{if eq .UserFilters.Status "enabled"}}selected{{end}}>启用</option>
+          <option value="disabled" {{if eq .UserFilters.Status "disabled"}}selected{{end}}>禁用</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">到期状态</label>
+        <select name="expiry">
+          <option value="" {{if eq .UserFilters.Expiry ""}}selected{{end}}>全部</option>
+          <option value="expired" {{if eq .UserFilters.Expiry "expired"}}selected{{end}}>已过期</option>
+          <option value="expiring_3d" {{if eq .UserFilters.Expiry "expiring_3d"}}selected{{end}}>3 天内到期</option>
+          <option value="expiring_7d" {{if eq .UserFilters.Expiry "expiring_7d"}}selected{{end}}>7 天内到期</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">每页数量</label>
+        <select name="page_size">
+          <option value="10" {{if eq .UserListMeta.PageSize 10}}selected{{end}}>10</option>
+          <option value="20" {{if eq .UserListMeta.PageSize 20}}selected{{end}}>20</option>
+          <option value="50" {{if eq .UserListMeta.PageSize 50}}selected{{end}}>50</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:12px;">
+      <button type="submit" style="width:auto;">应用筛选</button>
+      <a class="link-button" href="/admin/users">清空筛选</a>
+    </div>
+  </form>
+  <p class="muted" style="margin:0 0 12px;">
+    {{if gt .UserListMeta.Total 0}}
+    显示第 {{.UserListMeta.ShowingFrom}} - {{.UserListMeta.ShowingTo}} 条，共 {{.UserListMeta.Total}} 个用户
+    {{else}}
+    当前筛选条件下没有匹配用户
+    {{end}}
+  </p>
   <div class="table-wrap">
     <table>
       <thead><tr><th>用户</th><th>状态</th><th>到期时间</th><th>剩余天数</th><th>设备位</th><th>操作</th></tr></thead>
@@ -24,17 +68,17 @@
             <div class="actions compact">
               <form class="inline" method="post" action="/admin/users/{{.ID}}/renew-7">
                 <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                <input type="hidden" name="redirect_to" value="/admin/users">
+                <input type="hidden" name="redirect_to" value="{{$.UserActionURL}}">
                 <button type="submit">续费 7 天</button>
               </form>
               <form class="inline" method="post" action="/admin/users/{{.ID}}/renew-month">
                 <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                <input type="hidden" name="redirect_to" value="/admin/users">
+                <input type="hidden" name="redirect_to" value="{{$.UserActionURL}}">
                 <button type="submit" class="secondary">续费 1 个月</button>
               </form>
               <form class="inline" method="post" action="/admin/users/{{.ID}}/toggle">
                 <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                <input type="hidden" name="redirect_to" value="/admin/users">
+                <input type="hidden" name="redirect_to" value="{{$.UserActionURL}}">
                 <input type="hidden" name="enabled" value="{{if .Enabled}}0{{else}}1{{end}}">
                 <button type="submit" class="{{if .Enabled}}danger{{else}}secondary{{end}}">{{if .Enabled}}禁用{{else}}启用{{end}}</button>
               </form>
@@ -48,6 +92,18 @@
       </tbody>
     </table>
   </div>
+  {{if gt .UserListMeta.TotalPages 1}}
+  <div class="actions" style="margin-top:16px;justify-content:space-between;align-items:center;">
+    <div class="actions compact">
+      {{if .UserListMeta.HasPrev}}<a class="link-button" href="{{.UserListMeta.PrevURL}}">上一页</a>{{end}}
+      {{range .UserListMeta.Links}}
+      <a class="link-button" href="{{.URL}}" {{if .Current}}style="background:#111827;color:#fff;border-color:#111827;"{{end}}>{{.Label}}</a>
+      {{end}}
+      {{if .UserListMeta.HasNext}}<a class="link-button" href="{{.UserListMeta.NextURL}}">下一页</a>{{end}}
+    </div>
+    <span class="muted">第 {{.UserListMeta.Page}} / {{.UserListMeta.TotalPages}} 页</span>
+  </div>
+  {{end}}
 </div>
 
 <details class="card collapsible-card">
@@ -64,7 +120,20 @@
       <div class="row-tight grid">
         <div><label class="label">用户名</label><input type="text" name="name" required></div>
         <div><label class="label">设备位数量</label><input type="number" name="device_slots" value="1" min="1" required></div>
-        <div><label class="label">到期时间</label><input type="datetime-local" name="expires_at" required></div>
+        <div>
+          <label class="label">快捷到期</label>
+          <select name="quick_expiry">
+            <option value="7d">7 天后</option>
+            <option value="3d">3 天后</option>
+            <option value="1m">1 个月后</option>
+            <option value="custom">自定义时间</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">自定义到期时间</label>
+          <input type="datetime-local" name="expires_at">
+          <div class="help">仅在上面选择“自定义时间”时生效。</div>
+        </div>
         <div><label class="label">状态</label><select name="enabled"><option value="1">启用</option><option value="0">禁用</option></select></div>
       </div>
       <div>

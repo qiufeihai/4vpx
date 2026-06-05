@@ -25,6 +25,22 @@ type UpdateUserInput struct {
 	ExpiresAt time.Time
 }
 
+type UserListFilter struct {
+	Query    string
+	Status   string
+	Expiry   string
+	Page     int
+	PageSize int
+}
+
+type UserListPage struct {
+	Items      []domain.User
+	Total      int
+	Page       int
+	PageSize   int
+	TotalPages int
+}
+
 type UserService struct {
 	store *sqlite.Store
 }
@@ -160,6 +176,47 @@ func (s *UserService) List(ctx context.Context, now time.Time) ([]domain.User, e
 	return users, nil
 }
 
+func (s *UserService) ListFiltered(ctx context.Context, filter UserListFilter, now time.Time) (UserListPage, error) {
+	users, err := s.List(ctx, now)
+	if err != nil {
+		return UserListPage{}, err
+	}
+
+	filter = normalizeUserListFilter(filter)
+	filtered := make([]domain.User, 0, len(users))
+	for _, user := range users {
+		if !matchesUserListFilter(user, filter, now) {
+			continue
+		}
+		filtered = append(filtered, user)
+	}
+
+	total := len(filtered)
+	totalPages := 1
+	if total > 0 {
+		totalPages = (total + filter.PageSize - 1) / filter.PageSize
+	}
+	if filter.Page > totalPages {
+		filter.Page = totalPages
+	}
+	start := (filter.Page - 1) * filter.PageSize
+	if start > total {
+		start = total
+	}
+	end := start + filter.PageSize
+	if end > total {
+		end = total
+	}
+
+	return UserListPage{
+		Items:      filtered[start:end],
+		Total:      total,
+		Page:       filter.Page,
+		PageSize:   filter.PageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
 func (s *UserService) Delete(ctx context.Context, userID int64) error {
 	return s.store.Users.Delete(ctx, userID)
 }
@@ -190,4 +247,64 @@ func validateUpdateUserInput(input UpdateUserInput) error {
 		return ErrInvalidExpiry
 	}
 	return nil
+}
+
+func normalizeUserListFilter(filter UserListFilter) UserListFilter {
+	filter.Query = strings.TrimSpace(filter.Query)
+	filter.Status = strings.TrimSpace(filter.Status)
+	filter.Expiry = strings.TrimSpace(filter.Expiry)
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+	if filter.PageSize <= 0 {
+		filter.PageSize = 20
+	}
+	if filter.PageSize > 100 {
+		filter.PageSize = 100
+	}
+	return filter
+}
+
+func matchesUserListFilter(user domain.User, filter UserListFilter, now time.Time) bool {
+	if filter.Query != "" {
+		query := strings.ToLower(filter.Query)
+		if !strings.Contains(strings.ToLower(user.Name), query) && !strings.Contains(strings.ToLower(user.Notes), query) {
+			return false
+		}
+	}
+
+	switch filter.Status {
+	case "enabled":
+		if !user.Enabled {
+			return false
+		}
+	case "disabled":
+		if user.Enabled {
+			return false
+		}
+	}
+
+	switch filter.Expiry {
+	case "expired":
+		if user.ExpiresAt.After(now) {
+			return false
+		}
+	case "expiring_3d":
+		if !isUserExpiringWithin(user, now, 3) {
+			return false
+		}
+	case "expiring_7d":
+		if !isUserExpiringWithin(user, now, 7) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isUserExpiringWithin(user domain.User, now time.Time, days int) bool {
+	if !user.ExpiresAt.After(now) {
+		return false
+	}
+	return user.ExpiresAt.Before(now.AddDate(0, 0, days+1))
 }
