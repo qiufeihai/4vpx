@@ -50,7 +50,7 @@
   <main>
     {{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
     {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    {{template .ContentTemplate .}}
+    {{template "__content__" .}}
   </main>
 </body>
 </html>

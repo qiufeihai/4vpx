@@ -15,6 +15,8 @@ import (
 	"4vpx/internal/service"
 )
 
+const contentSlotTemplate = "__content__"
+
 type App struct {
 	Templates      *template.Template
 	SessionManager *middleware.SessionManager
@@ -62,7 +64,17 @@ func (a *App) render(w http.ResponseWriter, r *http.Request, data TemplateData) 
 		http.Error(w, "missing template", http.StatusInternalServerError)
 		return
 	}
-	if err := a.Templates.ExecuteTemplate(w, "layout", data); err != nil {
+
+	tpl, err := a.Templates.Clone()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if _, err := tpl.Parse(fmt.Sprintf(`{{define %q}}{{template %q .}}{{end}}`, contentSlotTemplate, data.ContentTemplate)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := tpl.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

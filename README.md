@@ -126,6 +126,36 @@ sudo XRAY_SERVICE_UNIT=your-xray.service ./scripts/install-rocky9.sh
 
 如果现有 `XRAY_CONFIG_PATH` 指向的 `Xray` 配置本身已经包含 `REALITY` 入站，脚本会优先读取其中的 `dest`、`serverNames[0]`、`privateKey`、`shortIds[0]`，并自动推导 `publicKey` 作为交互默认值。
 
+### 后续更新
+
+首次部署完成后，日常更新建议使用轻量脚本，而不是重复执行首次安装脚本：
+
+```bash
+git pull
+sudo ./scripts/update-rocky9.sh
+```
+
+这个更新脚本会：
+
+- 同步项目文件到 `/opt/4vpx`
+- 重新编译 `4vpx`
+- 覆盖最新 `4vpx.service`
+- 重启 `4vpx`
+
+这个更新脚本不会：
+
+- 重写 `/opt/4vpx/.env.local`
+- 重新安装 `Go`
+- 重新安装 `Xray`
+- 重新生成 `REALITY` 参数
+- 修改防火墙
+
+如果这次更新涉及 `Xray` 配置渲染或你就是想顺手重载 `Xray`，可以这样执行：
+
+```bash
+sudo ./scripts/update-rocky9.sh --with-xray-reload
+```
+
 ### 推荐填写
 
 更安全的后台方式：
