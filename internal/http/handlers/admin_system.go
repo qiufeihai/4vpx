@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -71,16 +74,12 @@ func (a *App) ExportBackup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) ImportBackup(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		redirectWithMessage(w, r, "/admin/system", "error", "表单解析失败")
+	payload, err := readBackupPayload(r)
+	if err != nil {
+		redirectWithMessage(w, r, "/admin/system", "error", err.Error())
 		return
 	}
-	payload := r.FormValue("backup_json")
-	if payload == "" {
-		redirectWithMessage(w, r, "/admin/system", "error", "请输入备份 JSON")
-		return
-	}
-	if err := a.Importer.ImportJSON(r.Context(), []byte(payload)); err != nil {
+	if err := a.Importer.ImportJSON(r.Context(), payload); err != nil {
 		redirectWithMessage(w, r, "/admin/system", "error", err.Error())
 		return
 	}
@@ -89,4 +88,29 @@ func (a *App) ImportBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirectWithMessage(w, r, "/admin/system", "flash", "备份已导入并发布")
+}
+
+func readBackupPayload(r *http.Request) ([]byte, error) {
+	if err := r.ParseMultipartForm(8 << 20); err == nil {
+		file, _, fileErr := r.FormFile("backup_file")
+		if fileErr == nil {
+			defer file.Close()
+			payload, err := io.ReadAll(file)
+			if err != nil {
+				return nil, err
+			}
+			if len(bytes.TrimSpace(payload)) == 0 {
+				return nil, fmt.Errorf("请上传备份 JSON 文件或粘贴 JSON 内容")
+			}
+			return payload, nil
+		}
+	}
+	if err := r.ParseForm(); err != nil {
+		return nil, fmt.Errorf("表单解析失败")
+	}
+	payload := bytes.TrimSpace([]byte(r.FormValue("backup_json")))
+	if len(payload) == 0 {
+		return nil, fmt.Errorf("请上传备份 JSON 文件或粘贴 JSON 内容")
+	}
+	return payload, nil
 }
