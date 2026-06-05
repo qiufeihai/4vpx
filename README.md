@@ -156,6 +156,23 @@ sudo ./scripts/update-rocky9.sh
 sudo ./scripts/update-rocky9.sh --with-xray-reload
 ```
 
+### 重置管理员
+
+如果忘记后台账号密码，或者你就是想强制重置管理员凭据，可以直接执行：
+
+```bash
+sudo ./scripts/reset-admin-rocky9.sh <username> <password>
+```
+
+这个脚本会：
+
+- 把新的 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 写入 `/opt/4vpx/.env.local`
+- 备份当前 SQLite 数据库
+- 清空 `admins` 和 `admin_sessions`
+- 重启 `4vpx`
+
+这个脚本不会影响用户、设备位、续费记录等业务数据，但会让现有管理员登录态全部失效。
+
 ### 推荐填写
 
 更安全的后台方式：
