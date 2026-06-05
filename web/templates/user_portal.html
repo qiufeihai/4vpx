@@ -12,6 +12,10 @@
   {{range .Devices}}
   <div class="card" style="background:#f9fafb;box-shadow:none;">
     <strong>{{.Slot.Label}}</strong>
+    <div class="actions compact" style="margin-top:10px;">
+      <a class="link-button" href="/u/{{$.User.AccessToken}}/devices/{{.Slot.SlotIndex}}/mihomo" target="_blank">Mihomo 订阅</a>
+      <a class="link-button" href="/u/{{$.User.AccessToken}}/devices/{{.Slot.SlotIndex}}/vless" target="_blank">VLESS 链接</a>
+    </div>
     <p class="label">VLESS URI</p>
     <pre class="mono">{{.VLESSURI}}</pre>
     <p class="label">Mihomo YAML</p>

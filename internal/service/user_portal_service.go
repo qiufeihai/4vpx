@@ -16,6 +16,12 @@ type PortalDevice struct {
 	MihomoYAML string
 }
 
+type DeviceExportView struct {
+	User   domain.User
+	Device PortalDevice
+	System domain.SystemConfig
+}
+
 type PortalView struct {
 	User    domain.User
 	Devices []PortalDevice
@@ -55,6 +61,36 @@ func (s *UserPortalService) GetByUserID(ctx context.Context, userID int64, now t
 		return PortalView{}, err
 	}
 	return s.buildView(ctx, user, now)
+}
+
+func (s *UserPortalService) GetDeviceByTokenAndSlot(ctx context.Context, token string, slotIndex int, now time.Time) (DeviceExportView, error) {
+	user, err := s.users.GetByAccessToken(ctx, token, now)
+	if err != nil {
+		return DeviceExportView{}, err
+	}
+	slot, err := s.devices.store.DeviceSlots.GetByUserAndSlotIndex(ctx, user.ID, slotIndex)
+	if err != nil {
+		return DeviceExportView{}, err
+	}
+	systemCfg, err := s.system.Get(ctx)
+	if err != nil {
+		return DeviceExportView{}, err
+	}
+
+	record := xray.DeviceRecord{User: user, Slot: slot}
+	clientConfig, err := s.renderer.RenderDeviceClientConfig(systemCfg, record)
+	if err != nil {
+		return DeviceExportView{}, fmt.Errorf("render device %d: %w", slot.SlotIndex, err)
+	}
+	return DeviceExportView{
+		User: user,
+		Device: PortalDevice{
+			Slot:       slot,
+			VLESSURI:   strings.TrimSpace(clientConfig.VLESSURI),
+			MihomoYAML: clientConfig.MihomoYAML,
+		},
+		System: systemCfg,
+	}, nil
 }
 
 func (s *UserPortalService) buildView(ctx context.Context, user domain.User, now time.Time) (PortalView, error) {

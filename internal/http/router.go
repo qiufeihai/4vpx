@@ -103,8 +103,33 @@ func NewRouter(ctx context.Context, db *sql.DB, cfg config.Config) (http.Handler
 		http.NotFound(w, r)
 	})))
 	mux.HandleFunc("/u/", func(w http.ResponseWriter, r *http.Request) {
-		token := strings.TrimPrefix(r.URL.Path, "/u/")
-		app.UserPortal(w, r, token)
+		path := strings.TrimPrefix(r.URL.Path, "/u/")
+		parts := strings.Split(strings.Trim(path, "/"), "/")
+		if len(parts) == 0 || parts[0] == "" {
+			http.NotFound(w, r)
+			return
+		}
+		token := parts[0]
+		if len(parts) == 1 && r.Method == http.MethodGet {
+			app.UserPortal(w, r, token)
+			return
+		}
+		if len(parts) == 4 && parts[1] == "devices" && r.Method == http.MethodGet {
+			slotIndex, err := handlers.ParseSlotIndex(parts[2])
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			if parts[3] == "mihomo" {
+				app.UserDeviceMihomo(w, r, token, slotIndex)
+				return
+			}
+			if parts[3] == "vless" {
+				app.UserDeviceVLESS(w, r, token, slotIndex)
+				return
+			}
+		}
+		http.NotFound(w, r)
 	})
 
 	adminMux := http.NewServeMux()
