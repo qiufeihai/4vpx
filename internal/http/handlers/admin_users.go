@@ -109,21 +109,22 @@ func (a *App) UpdateUser(w http.ResponseWriter, r *http.Request, userID int64) {
 }
 
 func (a *App) ToggleUser(w http.ResponseWriter, r *http.Request, userID int64) {
+	target := redirectTarget(r, fmt.Sprintf("/admin/users/%d", userID))
 	if err := r.ParseForm(); err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", "表单解析失败")
+		redirectWithMessage(w, r, target, "error", "表单解析失败")
 		return
 	}
 	enabled := r.FormValue("enabled") == "1"
 	_, err := a.UserService.SetEnabled(r.Context(), userID, enabled)
 	if err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
 	if err := a.publishMutation(r, "用户状态已更新"); err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
-	redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "flash", "用户状态已更新")
+	redirectWithMessage(w, r, target, "flash", "用户状态已更新")
 }
 
 func (a *App) DeleteUser(w http.ResponseWriter, r *http.Request, userID int64) {

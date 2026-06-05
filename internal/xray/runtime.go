@@ -59,7 +59,7 @@ func (r *Runtime) Publish(ctx context.Context, cfg domain.SystemConfig, devices 
 		return PublishResult{}, fmt.Errorf("mkdir xray backup dir: %w", err)
 	}
 
-	tempPath := cfg.XrayConfigPath + ".tmp"
+	tempPath := tempConfigPath(cfg.XrayConfigPath)
 	if err := os.WriteFile(tempPath, rendered, 0o644); err != nil {
 		return PublishResult{}, fmt.Errorf("write xray temp config: %w", err)
 	}
@@ -138,6 +138,15 @@ func (r *Runtime) reload(ctx context.Context, reloadCmd string) error {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+func tempConfigPath(configPath string) string {
+	ext := filepath.Ext(configPath)
+	if ext == "" {
+		return configPath + ".tmp.json"
+	}
+	base := strings.TrimSuffix(configPath, ext)
+	return base + ".tmp" + ext
 }
 
 func copyFile(src string, dst string) error {

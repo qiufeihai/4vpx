@@ -95,6 +95,17 @@ func redirectWithMessage(w http.ResponseWriter, r *http.Request, path, key, mess
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 
+func redirectTarget(r *http.Request, fallback string) string {
+	target := strings.TrimSpace(r.FormValue("redirect_to"))
+	if target == "" {
+		return fallback
+	}
+	if !strings.HasPrefix(target, "/") || strings.HasPrefix(target, "//") {
+		return fallback
+	}
+	return target
+}
+
 func parseInt64(value string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 }

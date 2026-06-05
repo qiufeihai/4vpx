@@ -11,16 +11,17 @@ func (a *App) Renew7Days(w http.ResponseWriter, r *http.Request, userID int64) {
 }
 
 func (a *App) Renew1Month(w http.ResponseWriter, r *http.Request, userID int64) {
+	target := redirectTarget(r, fmt.Sprintf("/admin/users/%d", userID))
 	_, _, err := a.RenewalService.RenewMonth(r.Context(), userID, "admin", r.FormValue("notes"), time.Now().UTC())
 	if err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
 	if err := a.publishMutation(r, "续费成功"); err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
-	redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "flash", "已续费 1 个月")
+	redirectWithMessage(w, r, target, "flash", "已续费 1 个月")
 }
 
 func (a *App) RenewCustom(w http.ResponseWriter, r *http.Request, userID int64) {
@@ -46,14 +47,15 @@ func (a *App) RenewCustom(w http.ResponseWriter, r *http.Request, userID int64) 
 }
 
 func (a *App) renewDays(w http.ResponseWriter, r *http.Request, userID int64, days int) {
+	target := redirectTarget(r, fmt.Sprintf("/admin/users/%d", userID))
 	_, _, err := a.RenewalService.RenewDays(r.Context(), userID, days, "admin", r.FormValue("notes"), time.Now().UTC())
 	if err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
 	if err := a.publishMutation(r, "续费成功"); err != nil {
-		redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "error", err.Error())
+		redirectWithMessage(w, r, target, "error", err.Error())
 		return
 	}
-	redirectWithMessage(w, r, fmt.Sprintf("/admin/users/%d", userID), "flash", fmt.Sprintf("已续费 %d 天", days))
+	redirectWithMessage(w, r, target, "flash", fmt.Sprintf("已续费 %d 天", days))
 }

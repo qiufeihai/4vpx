@@ -160,6 +160,14 @@ sudo ./scripts/update-rocky9.sh --with-xray-reload
 
 如果忘记后台账号密码，或者你就是想强制重置管理员凭据，可以直接执行：
 
+如果服务器还没安装 `sqlite3` 命令行工具，先执行：
+
+```bash
+sudo dnf install -y sqlite
+```
+
+然后再执行：
+
 ```bash
 sudo ./scripts/reset-admin-rocky9.sh <username> <password>
 ```
