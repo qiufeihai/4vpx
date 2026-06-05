@@ -178,11 +178,11 @@ prompt_value() {
 
 generate_reality_keypair() {
   local output private_key public_key
-  output=$("$XRAY_BIN_PATH" x25519)
-  private_key=$(printf '%s\n' "$output" | awk -F': ' '/Private key:/ {print $2}')
-  public_key=$(printf '%s\n' "$output" | awk -F': ' '/Public key:/ {print $2}')
+  output=$("$XRAY_BIN_PATH" x25519 2>&1 | tr -d '\r')
+  private_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*[Pp]rivate key:[[:space:]]*//p' | head -n1)
+  public_key=$(printf '%s\n' "$output" | sed -nE 's/^[[:space:]]*[Pp]ublic key:[[:space:]]*//p' | head -n1)
   if [ -z "$private_key" ] || [ -z "$public_key" ]; then
-    fail "failed to generate REALITY key pair"
+    return 1
   fi
   printf '%s\n%s\n' "$private_key" "$public_key"
 }
@@ -224,9 +224,12 @@ write_env_file() {
   private_key_default=$(read_env_value REALITY_PRIVATE_KEY "$existing_file")
   public_key_default=$(read_env_value REALITY_PUBLIC_KEY "$existing_file")
   if [ -z "$private_key_default" ] || [ -z "$public_key_default" ]; then
-    generated_keys=$(generate_reality_keypair)
-    private_key_default=$(printf '%s\n' "$generated_keys" | sed -n '1p')
-    public_key_default=$(printf '%s\n' "$generated_keys" | sed -n '2p')
+    if generated_keys=$(generate_reality_keypair); then
+      private_key_default=$(printf '%s\n' "$generated_keys" | sed -n '1p')
+      public_key_default=$(printf '%s\n' "$generated_keys" | sed -n '2p')
+    else
+      info "automatic REALITY key generation failed, please enter existing keys manually"
+    fi
   fi
 
   short_id_default=$(read_env_value REALITY_SHORT_ID "$existing_file")
